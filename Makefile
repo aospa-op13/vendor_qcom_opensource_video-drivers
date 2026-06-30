@@ -1,13 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
-all: modules
-
-modules:
-	ln -sf $(VIDEO_ROOT)/driver $(VIDEO_ROOT)/msm_video/driver
-	ln -sf $(VIDEO_ROOT)/driver $(VIDEO_ROOT)/video/driver
+all:
 	$(MAKE) -C $(KERNEL_SRC) M=$(M) modules $(KBUILD_OPTIONS)
-	rm $(VIDEO_ROOT)/msm_video/driver
-	rm $(VIDEO_ROOT)/video/driver
 
 modules_install:
 	$(MAKE) INSTALL_MOD_STRIP=1 -C $(KERNEL_SRC) M=$(M) modules_install
