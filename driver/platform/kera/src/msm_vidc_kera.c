@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 #include <dt-bindings/clock/qcom,gcc-kera.h>
@@ -52,6 +52,7 @@
 #define HEIC    MSM_VIDC_HEIC
 #define CODECS_ALL     (H264 | HEVC | VP9 | HEIC | AV1)
 #define MAXIMUM_OVERRIDE_VP9_FPS 200
+#define MAX_SESSION_COUNT_IOT 24
 
 static struct codec_info codec_data_kera[] = {
 	{
@@ -3566,7 +3567,7 @@ static struct msm_platform_inst_capability instance_cap_data_kera_v1[] = {
 
 	{LEVEL, ENC, H264,
 		V4L2_MPEG_VIDEO_H264_LEVEL_1_0,
-		V4L2_MPEG_VIDEO_H264_LEVEL_5_1,
+		V4L2_MPEG_VIDEO_H264_LEVEL_5_2,
 		BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1_0) |
 		BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1B) |
 		BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1_1) |
@@ -3582,15 +3583,16 @@ static struct msm_platform_inst_capability instance_cap_data_kera_v1[] = {
 		BIT(V4L2_MPEG_VIDEO_H264_LEVEL_4_1) |
 		BIT(V4L2_MPEG_VIDEO_H264_LEVEL_4_2) |
 		BIT(V4L2_MPEG_VIDEO_H264_LEVEL_5_0) |
-		BIT(V4L2_MPEG_VIDEO_H264_LEVEL_5_1),
-		V4L2_MPEG_VIDEO_H264_LEVEL_5_1,
+		BIT(V4L2_MPEG_VIDEO_H264_LEVEL_5_1) |
+		BIT(V4L2_MPEG_VIDEO_H264_LEVEL_5_2),
+		V4L2_MPEG_VIDEO_H264_LEVEL_5_2,
 		V4L2_CID_MPEG_VIDEO_H264_LEVEL,
 		HFI_PROP_LEVEL,
 		CAP_FLAG_VOLATILE | CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU},
 
 	{LEVEL, ENC, HEVC | HEIC,
 		V4L2_MPEG_VIDEO_HEVC_LEVEL_1,
-		V4L2_MPEG_VIDEO_HEVC_LEVEL_5,
+		V4L2_MPEG_VIDEO_HEVC_LEVEL_5_1,
 		BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_1) |
 		BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_2) |
 		BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_2_1) |
@@ -3598,8 +3600,9 @@ static struct msm_platform_inst_capability instance_cap_data_kera_v1[] = {
 		BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_3_1) |
 		BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_4) |
 		BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_4_1) |
-		BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_5),
-		V4L2_MPEG_VIDEO_HEVC_LEVEL_5,
+		BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_5) |
+		BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_5_1),
+		V4L2_MPEG_VIDEO_HEVC_LEVEL_5_1,
 		V4L2_CID_MPEG_VIDEO_HEVC_LEVEL,
 		HFI_PROP_LEVEL,
 		CAP_FLAG_VOLATILE | CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU},
@@ -4698,6 +4701,24 @@ static int msm_vidc_init_data(struct msm_vidc_core *core)
 
 	if (core->platform->data.sku_version == SKU_VERSION_1)
 		core->platform->data = kera_data_v1;
+	if (of_device_is_compatible(dev->of_node, "qcom,kera-vidc-v2")) {
+		int i = 0;
+		const u32 num_core_cap_data = core->platform->data.core_data_size;
+		struct msm_platform_core_capability *core_cap_data = NULL;
+
+		core_cap_data =
+			(struct msm_platform_core_capability *)core->platform->data.core_data;
+		for (i = 0; i < num_core_cap_data; i++) {
+			if (core_cap_data[i].type == MAX_SESSION_COUNT)
+				core_cap_data[i].value = MAX_SESSION_COUNT_IOT;
+			else if (core_cap_data[i].type == MAX_NUM_720P_SESSIONS)
+				core_cap_data[i].value = MAX_SESSION_COUNT_IOT;
+			else if (core_cap_data[i].type == MAX_NUM_1080P_SESSIONS)
+				core_cap_data[i].value = MAX_SESSION_COUNT_IOT;
+			else if (core_cap_data[i].type == MAX_MBPF)
+				core_cap_data[i].value = 195840;    /* (24 * ((1920x1088)/256))*/
+		}
+	}
 
 	core->mem_ops = get_mem_ops_ext();
 	if (!core->mem_ops) {

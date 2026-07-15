@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2020-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 #include <dt-bindings/clock/qcom,gcc-sun.h>
@@ -53,6 +53,7 @@
 #define HEIC    MSM_VIDC_HEIC
 #define CODECS_ALL     (H264 | HEVC | VP9 | HEIC | AV1)
 #define MAXIMUM_OVERRIDE_VP9_FPS 200
+#define MAX_SESSION_COUNT_IOT 24
 
 static struct codec_info codec_data_sun[] = {
 	{
@@ -285,7 +286,7 @@ static struct matrix_coeff_info matrix_coeff_data_sun[] = {
 	},
 };
 
-static const struct msm_platform_core_capability core_data_sun[] = {
+static struct msm_platform_core_capability core_data_sun[] = {
 	/* {type, value} */
 	{ENC_CODECS, H264 | HEVC | HEIC},
 	{DEC_CODECS, H264 | HEVC | VP9 | AV1 | HEIC},
@@ -1936,6 +1937,14 @@ static struct msm_platform_inst_capability instance_cap_data_sun[] = {
 		HFI_PROP_THREE_DIMENSIONAL_REFERENCE_DISPLAYS_INFO,
 		CAP_FLAG_BITMASK | CAP_FLAG_META},
 
+	{META_THREE_DIMENSIONAL_REF_DISP_INFO, DEC, HEVC,
+		MSM_VIDC_META_DISABLE,
+		MSM_VIDC_META_ENABLE | MSM_VIDC_META_RX_OUTPUT,
+		0, MSM_VIDC_META_DISABLE,
+		V4L2_CID_MPEG_VIDC_METADATA_THREE_DIMENSIONAL_REF_DISP_INFO,
+		HFI_PROP_THREE_DIMENSIONAL_REFERENCE_DISPLAYS_INFO,
+		CAP_FLAG_BITMASK | CAP_FLAG_META},
+
 	{META_PICTURE_TYPE, DEC, CODECS_ALL,
 		MSM_VIDC_META_DISABLE,
 		MSM_VIDC_META_ENABLE | MSM_VIDC_META_RX_INPUT,
@@ -3092,6 +3101,23 @@ static int msm_vidc_init_data(struct msm_vidc_core *core)
 		d_vpr_h("%s: update frequency table for sun v2\n", __func__);
 		core->platform->data.freq_tbl = sun_freq_table_v2;
 		core->platform->data.freq_tbl_size = ARRAY_SIZE(sun_freq_table_v2);
+	}
+
+	if (of_device_is_compatible(dev->of_node, "qcom,sm8750-vidc-v3")) {
+		int i = 0;
+		const u32 num_core_cap_data = core->platform->data.core_data_size;
+		struct msm_platform_core_capability *core_cap_data = NULL;
+
+		core_cap_data =
+			(struct msm_platform_core_capability *)core->platform->data.core_data;
+		for (i = 0; i < num_core_cap_data; i++) {
+			if (core_cap_data[i].type == MAX_SESSION_COUNT)
+				core_cap_data[i].value = MAX_SESSION_COUNT_IOT;
+			else if (core_cap_data[i].type == MAX_NUM_720P_SESSIONS)
+				core_cap_data[i].value = MAX_SESSION_COUNT_IOT;
+			else if (core_cap_data[i].type == MAX_NUM_1080P_SESSIONS)
+				core_cap_data[i].value = MAX_SESSION_COUNT_IOT;
+		}
 	}
 
 	core->mem_ops = get_mem_ops_ext();

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2020-2022, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 #include <linux/iommu.h>
@@ -4129,8 +4129,26 @@ int msm_vidc_print_inst_info(struct msm_vidc_inst *inst)
 void msm_vidc_print_core_info(struct msm_vidc_core *core)
 {
 	struct msm_vidc_inst *inst = NULL;
-	struct msm_vidc_inst *instances[MAX_SUPPORTED_INSTANCES];
+	struct msm_vidc_inst **instances = NULL;
+	s32 max_supported_instances;
 	s32 num_instances = 0;
+
+	if (!core) {
+		d_vpr_e("%s: invalid params\n", __func__);
+		return;
+	}
+
+	max_supported_instances = core->capabilities[MAX_SESSION_COUNT].value;
+	if (max_supported_instances > MAX_SUPPORTED_INSTANCES) {
+		d_vpr_e("%s: invalid number of instances\n", __func__);
+		return;
+	}
+
+	instances = vzalloc(max_supported_instances * sizeof(struct msm_vidc_inst *));
+	if (!instances) {
+		d_vpr_e("%s: instances allocation failed\n", __func__);
+		return;
+	}
 
 	core_lock(core, __func__);
 	list_for_each_entry(inst, &core->instances, list)
@@ -5444,8 +5462,8 @@ static int msm_vidc_check_max_sessions(struct msm_vidc_inst *inst)
 					       1088 + (1088 >> 1))) {
 			num_4k_sessions += 1;
 			num_1080p_sessions += 2;
-		} else if (res_is_greater_than(width, height, 1280 + (1280 >> 1),
-					       736 + (736 >> 1))) {
+		} else if (res_is_greater_than(width, height, 1280 + (1280 >> 2),
+					       736 + (736 >> 2))) {
 			num_1080p_sessions += 1;
 		}
 	}
